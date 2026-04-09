@@ -97,7 +97,7 @@ export function scoreTrust(token: any) {
   else if (liquidity > 100000) score += 10;
   else if (liquidity < 10000) score -= 20;
 
-  const created = token.pairCreatedAt ?? Date.now();
+  const created = token.pairCreatedAt ?? (Date.now() - 365 * 24 * 60 * 60 * 1000);
   const ageInDays = (Date.now() - created) / (1000 * 60 * 60 * 24);
   if (ageInDays > 180) score += 15;
   else if (ageInDays > 30) score += 8;
@@ -129,7 +129,7 @@ export function washRisk(token: any): "LOW" | "MEDIUM" | "HIGH" {
 
 export function scoreBreakdown(token: any) {
   const liquidity = token.liquidity?.usd ?? 0;
-  const created = token.pairCreatedAt ?? Date.now();
+  const created = token.pairCreatedAt ?? (Date.now() - 365 * 24 * 60 * 60 * 1000);
   const ageInDays = Math.floor((Date.now() - created) / (1000 * 60 * 60 * 24));
   const volume24h = token.volume?.h24 ?? 0;
   const mcap = token.marketCap ?? 1;
