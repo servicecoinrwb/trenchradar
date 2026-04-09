@@ -2,27 +2,28 @@ export async function getTopTokens(chain: string = "all") {
   try {
     let pairs: any[] = [];
 
-    const chainMap: Record<string, string> = {
-      ethereum: "ethereum",
-      solana: "solana",
-      base: "base",
-      arbitrum: "arbitrum",
-    };
-
     const chains = chain === "all"
-      ? Object.values(chainMap)
-      : [chainMap[chain] ?? chain];
+      ? ["solana", "ethereum", "base", "arbitrum"]
+      : [chain];
 
-    // Fetch trending pairs for each chain in parallel
     const results = await Promise.all(
       chains.map(async (c) => {
         try {
           const res = await fetch(
-            `https://api.dexscreener.com/latest/dex/search?q=&chain=${c}`,
+            `https://api.dexscreener.com/token-profiles/latest/v1`,
             { next: { revalidate: 60 } }
           );
           const data = await res.json();
-          return data.pairs ?? [];
+          const filtered = data.filter((t: any) => t.chainId === c);
+          const addresses = filtered.slice(0, 30).map((t: any) => t.tokenAddress).join(",");
+          if (!addresses) return [];
+
+          const pairRes = await fetch(
+            `https://api.dexscreener.com/latest/dex/tokens/${addresses}`,
+            { next: { revalidate: 60 } }
+          );
+          const pairData = await pairRes.json();
+          return pairData.pairs ?? [];
         } catch {
           return [];
         }
@@ -31,15 +32,15 @@ export async function getTopTokens(chain: string = "all") {
 
     pairs = results.flat();
 
-    // Filter: must have liquidity and volume
+    // Filter: must have real activity
     pairs = pairs.filter(
       (p: any) =>
         p.liquidity?.usd > 5000 &&
-        p.volume?.h24 > 1000 &&
-        p.txns?.h24?.buys + p.txns?.h24?.sells > 5
+        p.volume?.h24 > 500 &&
+        (p.txns?.h24?.buys ?? 0) + (p.txns?.h24?.sells ?? 0) > 5
     );
 
-    // Deduplicate by pair address
+    // Deduplicate
     const seen = new Set();
     const deduped = [];
     for (const pair of pairs) {
