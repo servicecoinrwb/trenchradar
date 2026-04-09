@@ -31,7 +31,7 @@ async function fetchTokenByPairAddress(address: string) {
 
 function getRedFlags(token: any, bd: any, enriched: any): string[] {
   const flags: string[] = [];
-  if (bd.ageInDays < 3) flags.push("Token is less than 3 days old — no track record whatsoever.");
+  if (token.pairCreatedAt && bd.ageInDays < 3) flags.push("Token is less than 3 days old — no track record whatsoever.");
   if (bd.liquidity < 10000) flags.push("Liquidity under $10K — a single whale can crash this instantly.");
   if (bd.volumeToMcap > 5) flags.push(`Volume is ${bd.volumeToMcap}x the market cap in 24h — textbook wash trading signal.`);
   else if (bd.volumeToMcap > 2) flags.push(`Volume/MCap ratio of ${bd.volumeToMcap}x is suspiciously high — possible manufactured activity.`);
@@ -136,9 +136,9 @@ export default async function TokenPage({
           </div>
           <div className="bg-gray-900 border border-gray-800 rounded-xl p-4">
             <div className="text-gray-400 text-xs uppercase mb-1">Pair Age</div>
-            <div className="text-white text-2xl">{bd.ageInDays}d</div>
+            <div className="text-white text-2xl">{token.pairCreatedAt ? `${bd.ageInDays}d` : "Unknown"}</div>
             <div className="text-gray-500 text-xs mt-1">
-              {bd.ageInDays > 180 ? "Established" : bd.ageInDays > 30 ? "Developing" : "Very new - high risk"}
+              {!token.pairCreatedAt ? "Age data unavailable" : bd.ageInDays > 180 ? "Established" : bd.ageInDays > 30 ? "Developing" : "Very new - high risk"}
             </div>
           </div>
         </div>
