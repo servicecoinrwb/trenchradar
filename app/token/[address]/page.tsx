@@ -79,13 +79,15 @@ export default async function TokenPage({
   const enriched = await enrichToken(token);
   const flags = getRedFlags(token, bd, enriched);
 
-  await supabase.from("score_history").insert({
-    pair_address: address,
-    trust_score: trust,
-    wash_risk: risk,
-    price_usd: Number(token.priceUsd ?? 0),
-    liquidity: bd.liquidity,
-  }).catch(() => {});
+  try {
+    await supabase.from("score_history").insert({
+      pair_address: address,
+      trust_score: trust,
+      wash_risk: risk,
+      price_usd: Number(token.priceUsd ?? 0),
+      liquidity: bd.liquidity,
+    });
+  } catch {}
 
   const trustColor = trust >= 70 ? "text-green-400" : trust >= 40 ? "text-yellow-400" : "text-red-400";
   const riskColor = risk === "HIGH" ? "text-red-400" : risk === "MEDIUM" ? "text-yellow-400" : "text-green-400";
