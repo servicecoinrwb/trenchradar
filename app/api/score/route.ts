@@ -2,6 +2,16 @@ import { NextResponse } from "next/server";
 import { supabase } from "../../supabase";
 import { getTopTokens, scoreTrust, washRisk, scoreBreakdown } from "../../tokens";
 
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 async function validateKey(key: string) {
   const { data } = await supabase
     .from("api_keys")
@@ -11,7 +21,6 @@ async function validateKey(key: string) {
 
   if (!data) return { valid: false, reason: "Invalid API key" };
 
-  // Reset daily counter if needed
   if (data.last_reset !== new Date().toISOString().split("T")[0]) {
     await supabase
       .from("api_keys")
@@ -20,13 +29,11 @@ async function validateKey(key: string) {
     data.requests_today = 0;
   }
 
-  // Free tier limit: 100 requests per day
   const limit = data.plan === "pro" ? 10000 : 100;
   if (data.requests_today >= limit) {
     return { valid: false, reason: `Daily limit of ${limit} requests reached` };
   }
 
-  // Increment counter
   await supabase
     .from("api_keys")
     .update({ requests_today: data.requests_today + 1 })
@@ -41,20 +48,18 @@ export async function GET(req: Request) {
   const address = searchParams.get("address");
   const chain = searchParams.get("chain") ?? "all";
 
-  // Check API key
   if (!key) {
     return NextResponse.json(
-      { error: "Missing api_key parameter. Get a free key at trenchradar.vercel.app/api-access" },
-      { status: 401 }
+      { error: "Missing api_key. Get one at trenchradar.vercel.app/api-access" },
+      { status: 401, headers: CORS_HEADERS }
     );
   }
 
   const { valid, reason, plan } = await validateKey(key);
   if (!valid) {
-    return NextResponse.json({ error: reason }, { status: 403 });
+    return NextResponse.json({ error: reason }, { status: 403, headers: CORS_HEADERS });
   }
 
-  // If no address, return full ranked list
   if (!address) {
     const tokens = await getTopTokens(chain);
     const scored = tokens
@@ -73,49 +78,52 @@ export async function GET(req: Request) {
       }))
       .sort((a: any, b: any) => b.trustScore - a.trustScore);
 
-    return NextResponse.json({
-      success: true,
-      plan,
-      count: scored.length,
-      tokens: scored,
-    });
+    return NextResponse.json(
+      { success: true, plan, count: scored.length, tokens: scored },
+      { headers: CORS_HEADERS }
+    );
   }
 
-  // Single token lookup by pair address
   const tokens = await getTopTokens(chain);
   const token = tokens.find((t: any) => t.pairAddress === address || t.baseToken?.address === address);
 
   if (!token) {
-    return NextResponse.json({ error: "Token not found in current list" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Token not found in current list" },
+      { status: 404, headers: CORS_HEADERS }
+    );
   }
 
   const bd = scoreBreakdown(token);
 
-  return NextResponse.json({
-    success: true,
-    plan,
-    token: {
-      symbol: token.baseToken?.symbol,
-      name: token.baseToken?.name,
-      address: token.baseToken?.address,
-      pairAddress: token.pairAddress,
-      chainId: token.chainId,
-      priceUsd: token.priceUsd,
-      liquidity: bd.liquidity,
-      volume24h: bd.volume24h,
-      priceChange24h: bd.priceChange24h,
-      age: bd.ageInDays,
-      trustScore: scoreTrust(token),
-      washRisk: washRisk(token),
-      breakdown: {
-        liquidityScore: bd.liquidity > 500000 ? "+20" : bd.liquidity > 100000 ? "+10" : "-20",
-        ageScore: bd.ageInDays > 180 ? "+15" : bd.ageInDays > 30 ? "+8" : bd.ageInDays < 3 ? "-15" : "0",
-        volumeScore: bd.volumeToMcap > 5 ? "-25" : bd.volumeToMcap > 2 ? "-10" : "0",
-        txnScore: bd.txns > 200 ? "+10" : bd.txns < 10 ? "-10" : "0",
-        buys: bd.buys,
-        sells: bd.sells,
-        volumeToMcap: bd.volumeToMcap,
+  return NextResponse.json(
+    {
+      success: true,
+      plan,
+      token: {
+        symbol: token.baseToken?.symbol,
+        name: token.baseToken?.name,
+        address: token.baseToken?.address,
+        pairAddress: token.pairAddress,
+        chainId: token.chainId,
+        priceUsd: token.priceUsd,
+        liquidity: bd.liquidity,
+        volume24h: bd.volume24h,
+        priceChange24h: bd.priceChange24h,
+        age: bd.ageInDays,
+        trustScore: scoreTrust(token),
+        washRisk: washRisk(token),
+        breakdown: {
+          liquidityScore: bd.liquidity > 500000 ? "+20" : bd.liquidity > 100000 ? "+10" : "-20",
+          ageScore: bd.ageInDays > 180 ? "+15" : bd.ageInDays > 30 ? "+8" : bd.ageInDays < 3 ? "-15" : "0",
+          volumeScore: bd.volumeToMcap > 5 ? "-25" : bd.volumeToMcap > 2 ? "-10" : "0",
+          txnScore: bd.txns > 200 ? "+10" : bd.txns < 10 ? "-10" : "0",
+          buys: bd.buys,
+          sells: bd.sells,
+          volumeToMcap: bd.volumeToMcap,
+        },
       },
     },
-  });
+    { headers: CORS_HEADERS }
+  );
 }
