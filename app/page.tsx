@@ -1,125 +1,99 @@
-import { getTopTokens, scoreTrust, washRisk } from "./tokens";
-import Link from "next/link";
-import SearchBar from "./search";
-
-const CHAINS = [
-  { id: "all", label: "All Chains" },
-  { id: "ethereum", label: "Ethereum" },
-  { id: "solana", label: "Solana" },
-  { id: "base", label: "Base" },
-  { id: "arbitrum", label: "Arbitrum" },
-];
-
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ chain?: string }>;
-}) {
-  const { chain = "all" } = await searchParams;
-  const tokens = await getTopTokens(chain);
-
-  const scored = tokens
-    .map((token: any) => ({
-      token,
-      trust: scoreTrust(token),
-      risk: washRisk(token),
-    }))
-    .sort((a: any, b: any) => b.trust - a.trust);
-
+export default function LandingPage() {
   return (
-    <main className="min-h-screen bg-gray-950 text-white p-6">
-      <div className="max-w-7xl mx-auto">
+    <main style={{ background: "#0a0d12", color: "#fff", fontFamily: "monospace", minHeight: "100vh" }}>
 
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-green-400">TrenchRadar</h1>
-            <p className="text-gray-400 text-sm mt-1">Legit token rankings. No wash trading bullshit.</p>
-          </div>
-          <div className="flex items-center gap-4">
-            <a href="/rugs" className="text-xs text-gray-500 hover:text-red-400 transition-all">Rug Radar</a>
-            <a href="/report" className="text-xs text-gray-500 hover:text-red-400 transition-all">Report Token</a>
-            <a href="/api-access" className="text-xs text-gray-500 hover:text-green-400 transition-all">API Access</a>
-            <div className="text-xs text-gray-500">Sorted by Trust Score</div>
-          </div>
+      {/* Nav */}
+      <nav style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 40px", borderBottom: "1px solid #1a2030" }}>
+        <div style={{ color: "#22c55e", fontSize: "20px", fontWeight: "bold" }}>TrenchRadar</div>
+        <div style={{ display: "flex", gap: "24px" }}>
+          <a href="/app" style={{ color: "#6b7280", fontSize: "13px", textDecoration: "none" }}>Rankings</a>
+          <a href="/rugs" style={{ color: "#6b7280", fontSize: "13px", textDecoration: "none" }}>Rug Radar</a>
+          <a href="/api-access" style={{ color: "#6b7280", fontSize: "13px", textDecoration: "none" }}>API</a>
+          <a href="/report" style={{ color: "#6b7280", fontSize: "13px", textDecoration: "none" }}>Report Token</a>
         </div>
+      </nav>
 
-        <SearchBar />
+      {/* Hero */}
+      <div style={{ textAlign: "center", padding: "80px 40px 60px" }}>
+        <div style={{ display: "inline-block", background: "#052e16", border: "1px solid #166534", color: "#22c55e", fontSize: "12px", padding: "6px 14px", borderRadius: "20px", marginBottom: "24px" }}>
+          Free — no signup required
+        </div>
+        <h1 style={{ fontSize: "clamp(32px, 5vw, 56px)", fontWeight: "bold", lineHeight: 1.1, marginBottom: "20px" }}>
+          Token rankings with<br />
+          <span style={{ color: "#22c55e" }}>no bullshit</span>
+        </h1>
+        <p style={{ color: "#6b7280", fontSize: "16px", maxWidth: "560px", margin: "0 auto 36px", lineHeight: 1.6 }}>
+          DexScreener ranks tokens by who paid to boost. We rank by trust. Wash trading detection, holder concentration, LP lock status — explained in plain English.
+        </p>
+        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+          <a href="/app" style={{ background: "#22c55e", color: "#000", fontWeight: "bold", padding: "14px 28px", borderRadius: "12px", textDecoration: "none", fontSize: "14px", fontFamily: "monospace" }}>
+            View live rankings
+          </a>
+          <a href="/api-access" style={{ border: "1px solid #22c55e", color: "#22c55e", padding: "14px 28px", borderRadius: "12px", textDecoration: "none", fontSize: "14px", fontFamily: "monospace" }}>
+            Get API access
+          </a>
+        </div>
+      </div>
 
-        <div className="flex gap-2 mb-8 flex-wrap">
-          {CHAINS.map((c) => (
-            <Link
-              key={c.id}
-              href={`/?chain=${c.id}`}
-              className={`px-4 py-2 rounded-full text-sm font-medium border transition-all ${
-                chain === c.id
-                  ? "bg-green-500 text-black border-green-500"
-                  : "bg-gray-900 text-gray-400 border-gray-700 hover:border-green-700"
-              }`}
-            >
-              {c.label}
-            </Link>
+      {/* Demo table */}
+      <div style={{ maxWidth: "920px", margin: "0 auto 60px", padding: "0 40px" }}>
+        <div style={{ background: "#0f1117", border: "1px solid #1a2030", borderRadius: "16px", padding: "24px" }}>
+          <div style={{ color: "#6b7280", fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", marginBottom: "12px", display: "grid", gridTemplateColumns: "40px 1fr 100px 100px 80px 80px 90px", gap: "8px", padding: "0 16px" }}>
+            <span>Rank</span><span>Token</span><span>Price</span><span>Liquidity</span><span>Age</span><span>Wash Risk</span><span>Trust Score</span>
+          </div>
+          {[
+            { rank: 1, symbol: "Buttcoin", price: "$0.01039", liq: "$542K", age: "90d", risk: "LOW", score: 88, riskColor: "#22c55e", scoreColor: "#22c55e", hot: "" },
+            { rank: 2, symbol: "MOLTING", price: "$0.00085", liq: "$81K", age: "68d", risk: "LOW", score: 68, riskColor: "#22c55e", scoreColor: "#eab308", hot: "" },
+            { rank: 14, symbol: "Tortellini  +953% today", price: "$0.00035", liq: "$52K", age: "0d", risk: "HIGH", score: 20, riskColor: "#ef4444", scoreColor: "#ef4444", hot: "rug" },
+          ].map((t) => (
+            <div key={t.rank} style={{ display: "grid", gridTemplateColumns: "40px 1fr 100px 100px 80px 80px 90px", alignItems: "center", padding: "12px 16px", borderRadius: "10px", marginBottom: "8px", background: t.hot ? "#0d0404" : "#070a0e", border: `1px solid ${t.hot ? "#7f1d1d" : "#1a2030"}`, fontSize: "13px", gap: "8px" }}>
+              <span style={{ color: "#4b5563" }}>#{t.rank}</span>
+              <span style={{ fontWeight: "bold" }}>{t.symbol}</span>
+              <span style={{ fontFamily: "monospace", color: "#fff" }}>{t.price}</span>
+              <span style={{ color: "#fff" }}>{t.liq}</span>
+              <span style={{ color: "#9ca3af" }}>{t.age}</span>
+              <span style={{ color: t.riskColor, fontWeight: "bold" }}>{t.risk}</span>
+              <span style={{ color: t.scoreColor, fontWeight: "bold", fontSize: "20px" }}>{t.score}</span>
+            </div>
           ))}
         </div>
-
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <div className="text-green-400 font-bold text-lg">Trust Score</div>
-            <div className="text-gray-400 text-xs mt-1">Composite anti-manipulation rating 0-100</div>
-          </div>
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <div className="text-yellow-400 font-bold text-lg">Liquidity</div>
-            <div className="text-gray-400 text-xs mt-1">Real depth - harder to fake than volume</div>
-          </div>
-          <div className="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <div className="text-red-400 font-bold text-lg">Wash Risk</div>
-            <div className="text-gray-400 text-xs mt-1">Detected manipulation signals</div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-8 text-xs text-gray-500 uppercase px-4 mb-2">
-          <div>Rank</div>
-          <div>Token</div>
-          <div>Price</div>
-          <div>24h</div>
-          <div>Liquidity</div>
-          <div>Age</div>
-          <div>Wash Risk</div>
-          <div>Trust Score</div>
-        </div>
-
-        {scored.map(({ token, trust, risk }: any, i: number) => {
-          const ageInDays = Math.floor(
-            (Date.now() - (token.pairCreatedAt ?? Date.now())) / (1000 * 60 * 60 * 24)
-          );
-          const priceChange = token.priceChange?.h24 ?? 0;
-          const riskColor = risk === "HIGH" ? "text-red-400" : risk === "MEDIUM" ? "text-yellow-400" : "text-green-400";
-          const trustColor = trust >= 70 ? "text-green-400" : trust >= 40 ? "text-yellow-400" : "text-red-400";
-          const changeColor = priceChange >= 0 ? "text-green-400" : "text-red-400";
-
-          return (
-            <Link
-              key={i}
-              href={`/token/${token.pairAddress}?chain=${token.chainId}`}
-              className="grid grid-cols-8 items-center bg-gray-900 border border-gray-800 rounded-xl px-4 py-4 mb-2 hover:border-green-700 hover:bg-gray-800 transition-all cursor-pointer"
-            >
-              <div className="text-gray-500 font-mono">#{i + 1}</div>
-              <div>
-                <div className="font-bold text-white">{token.baseToken?.symbol ?? "???"}</div>
-                <div className="text-gray-500 text-xs truncate w-24">{token.baseToken?.name ?? ""}</div>
-              </div>
-              <div className="text-white font-mono text-sm">${Number(token.priceUsd ?? 0).toFixed(6)}</div>
-              <div className={`text-sm font-medium ${changeColor}`}>
-                {priceChange >= 0 ? "+" : ""}{priceChange.toFixed(1)}%
-              </div>
-              <div className="text-white text-sm">${((token.liquidity?.usd ?? 0) / 1000).toFixed(1)}K</div>
-              <div className="text-gray-400 text-sm">{ageInDays}d</div>
-              <div className={`font-bold text-sm ${riskColor}`}>{risk}</div>
-              <div className={`font-bold text-lg ${trustColor}`}>{trust}</div>
-            </Link>
-          );
-        })}
-
       </div>
+
+      {/* Features */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "16px", padding: "0 40px 60px", maxWidth: "1000px", margin: "0 auto" }}>
+        {[
+          { icon: "🔍", title: "Wash trading detection", desc: "Volume/market cap ratio analysis catches fake activity that inflates rankings on other platforms." },
+          { icon: "👥", title: "Holder concentration", desc: "Real on-chain data shows if top 5 wallets control the supply — the biggest rug pull signal." },
+          { icon: "🔒", title: "LP lock checker", desc: "Know instantly if liquidity is locked or if devs can pull funds at any moment." },
+          { icon: "⚡", title: "Red flags in plain English", desc: "No jargon. 'Price pumped 953% in 24h — dump usually follows' says more than a number." },
+          { icon: "📡", title: "Community rug radar", desc: "Submit evidence of manipulation. Most-reported tokens get flagged across the platform." },
+          { icon: "🛠", title: "Free API access", desc: "Query trust scores programmatically. 100 req/day free. Build bots, alerts, dashboards." },
+        ].map((f) => (
+          <div key={f.title} style={{ background: "#0f1117", border: "1px solid #1a2030", borderRadius: "16px", padding: "24px" }}>
+            <div style={{ fontSize: "24px", marginBottom: "14px" }}>{f.icon}</div>
+            <h3 style={{ color: "#fff", fontSize: "14px", marginBottom: "8px" }}>{f.title}</h3>
+            <p style={{ color: "#6b7280", fontSize: "12px", lineHeight: 1.5 }}>{f.desc}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* CTA */}
+      <div style={{ textAlign: "center", padding: "60px 40px", borderTop: "1px solid #1a2030" }}>
+        <h2 style={{ fontSize: "32px", fontWeight: "bold", marginBottom: "12px" }}>Start using TrenchRadar</h2>
+        <p style={{ color: "#6b7280", marginBottom: "28px" }}>Free, no signup, no ads. Just better signal.</p>
+        <div style={{ display: "flex", gap: "12px", justifyContent: "center", flexWrap: "wrap" }}>
+          <a href="/app" style={{ background: "#22c55e", color: "#000", fontWeight: "bold", padding: "14px 28px", borderRadius: "12px", textDecoration: "none", fontSize: "14px", fontFamily: "monospace" }}>
+            Open rankings
+          </a>
+          <a href="https://chrome.google.com/webstore" target="_blank" style={{ border: "1px solid #22c55e", color: "#22c55e", padding: "14px 28px", borderRadius: "12px", textDecoration: "none", fontSize: "14px", fontFamily: "monospace" }}>
+            Install Chrome extension
+          </a>
+        </div>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "8px", background: "#0f1117", border: "1px solid #1a2030", borderRadius: "10px", padding: "12px 20px", fontSize: "13px", color: "#9ca3af", marginTop: "16px" }}>
+          Overlays trust scores directly on DexScreener — no tab switching
+        </div>
+      </div>
+
     </main>
   );
 }
