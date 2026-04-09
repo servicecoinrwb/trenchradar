@@ -6,15 +6,8 @@ import ScoreChart from "../../ScoreChart";
 
 async function fetchTokenByPairAddress(address: string) {
   try {
-    const res = await fetch(
-      `https://api.dexscreener.com/latest/dex/pairs/solana/${address}`,
-      { next: { revalidate: 60 } }
-    );
-    const data = await res.json();
-    if (data?.pair) return data.pair;
-
-    // Try other chains
-    const chains = ["ethereum", "base", "arbitrum", "bsc"];
+    // First try as pair address on all chains
+    const chains = ["solana", "ethereum", "base", "arbitrum", "bsc"];
     for (const chain of chains) {
       const r = await fetch(
         `https://api.dexscreener.com/latest/dex/pairs/${chain}/${address}`,
@@ -23,6 +16,19 @@ async function fetchTokenByPairAddress(address: string) {
       const d = await r.json();
       if (d?.pair) return d.pair;
     }
+
+    // Then try as token address
+    const r = await fetch(
+      `https://api.dexscreener.com/latest/dex/tokens/${address}`,
+      { next: { revalidate: 60 } }
+    );
+    const d = await r.json();
+    if (d?.pairs?.length > 0) {
+      return d.pairs.sort((a: any, b: any) =>
+        (b.liquidity?.usd ?? 0) - (a.liquidity?.usd ?? 0)
+      )[0];
+    }
+
     return null;
   } catch {
     return null;
