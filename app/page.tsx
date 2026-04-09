@@ -85,7 +85,7 @@ export default function LandingPage() {
           <a href="/app" style={{ background: "#22c55e", color: "#000", fontWeight: "bold", padding: "14px 28px", borderRadius: "12px", textDecoration: "none", fontSize: "14px", fontFamily: "monospace" }}>
             Open rankings
           </a>
-          <a href="https://chrome.google.com/webstore" target="_blank" style={{ border: "1px solid #22c55e", color: "#22c55e", padding: "14px 28px", borderRadius: "12px", textDecoration: "none", fontSize: "14px", fontFamily: "monospace" }}>
+          <a href="https://github.com/servicecoinrwb/trenchradar/releases/download/v1.0/trenchradar-extension.zip" target="_blank" style={{ border: "1px solid #22c55e", color: "#22c55e", padding: "14px 28px", borderRadius: "12px", textDecoration: "none", fontSize: "14px", fontFamily: "monospace" }}>
             Install Chrome extension
           </a>
         </div>
