@@ -1,37 +1,65 @@
 export async function getTopTokens(chain: string = "all") {
-  const boostRes = await fetch(
-    "https://api.dexscreener.com/token-boosts/top/v1",
-    { next: { revalidate: 60 } }
-  );
-  const boosts = await boostRes.json();
+  try {
+    let pairs: any[] = [];
 
-  const filtered = chain === "all"
-    ? boosts
-    : boosts.filter((t: any) => t.chainId === chain);
+    const chainMap: Record<string, string> = {
+      ethereum: "ethereum",
+      solana: "solana",
+      base: "base",
+      arbitrum: "arbitrum",
+    };
 
-  const top = filtered.slice(0, 20);
-  if (top.length === 0) return [];
+    const chains = chain === "all"
+      ? Object.values(chainMap)
+      : [chainMap[chain] ?? chain];
 
-  const addresses = top.map((t: any) => t.tokenAddress).join(",");
-  const pairRes = await fetch(
-    `https://api.dexscreener.com/latest/dex/tokens/${addresses}`,
-    { next: { revalidate: 60 } }
-  );
-  const pairData = await pairRes.json();
-  const pairs = pairData.pairs ?? [];
+    // Fetch trending pairs for each chain in parallel
+    const results = await Promise.all(
+      chains.map(async (c) => {
+        try {
+          const res = await fetch(
+            `https://api.dexscreener.com/latest/dex/search?q=&chain=${c}`,
+            { next: { revalidate: 60 } }
+          );
+          const data = await res.json();
+          return data.pairs ?? [];
+        } catch {
+          return [];
+        }
+      })
+    );
 
-  const seen = new Set();
-  const result = [];
-  for (const pair of pairs) {
-    const addr = pair.baseToken?.address;
-    if (!seen.has(addr)) {
-      seen.add(addr);
-      result.push(pair);
+    pairs = results.flat();
+
+    // Filter: must have liquidity and volume
+    pairs = pairs.filter(
+      (p: any) =>
+        p.liquidity?.usd > 5000 &&
+        p.volume?.h24 > 1000 &&
+        p.txns?.h24?.buys + p.txns?.h24?.sells > 5
+    );
+
+    // Deduplicate by pair address
+    const seen = new Set();
+    const deduped = [];
+    for (const pair of pairs) {
+      if (!seen.has(pair.pairAddress)) {
+        seen.add(pair.pairAddress);
+        deduped.push(pair);
+      }
     }
-    if (result.length >= 20) break;
-  }
 
-  return result;
+    // Score and sort
+    const scored = deduped
+      .map((p: any) => ({ pair: p, score: scoreTrust(p) }))
+      .sort((a: any, b: any) => b.score - a.score)
+      .slice(0, 25)
+      .map((s: any) => s.pair);
+
+    return scored;
+  } catch {
+    return [];
+  }
 }
 
 export function scoreTrust(token: any) {
