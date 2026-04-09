@@ -36,6 +36,8 @@ export default async function Home({
             <p className="text-gray-400 text-sm mt-1">Legit token rankings. No wash trading bullshit.</p>
           </div>
           <div className="flex items-center gap-4">
+            <a href="/rugs" className="text-xs text-gray-500 hover:text-red-400 transition-all">Rug Radar</a>
+            <a href="/report" className="text-xs text-gray-500 hover:text-red-400 transition-all">Report Token</a>
             <a href="/api-access" className="text-xs text-gray-500 hover:text-green-400 transition-all">API Access</a>
             <div className="text-xs text-gray-500">Sorted by Trust Score</div>
           </div>
