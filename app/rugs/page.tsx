@@ -46,9 +46,7 @@ export default async function RugLeaderboardPage() {
             <p className="text-gray-400 text-sm mt-1">Community-reported manipulation and confirmed rugs.</p>
           </div>
           
-            href="/report"
-            className="bg-red-500 hover:bg-red-400 text-white font-bold px-5 py-2 rounded-xl text-sm transition-all"
-          >
+            <a href="/report" className="bg-red-500 hover:bg-red-400 text-white font-bold px-5 py-2 rounded-xl text-sm transition-all">
             Report a Token
           </a>
         </div>
