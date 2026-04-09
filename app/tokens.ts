@@ -1,7 +1,19 @@
+const CHAIN_PAIRS: Record<string, string[]> = {
+  ethereum: [
+    "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640", // USDC/ETH Uniswap
+    "0x11b815efb8f581194ae79006d24e0d814b7697f6", // WETH/USDT
+    "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36", // WETH/USDT v3
+  ],
+  base: [
+    "0xd0b53d9277642d899df5c87a3966a349a798f224", // WETH/USDC Base
+  ],
+  arbitrum: [
+    "0xc31e54c7a869b9fcbecc14363cf510d1c41fa443", // WETH/USDC Arb
+  ],
+};
+
 export async function getTopTokens(chain: string = "all") {
   try {
-    let pairs: any[] = [];
-
     const chains = chain === "all"
       ? ["solana", "ethereum", "base", "arbitrum"]
       : [chain];
@@ -9,30 +21,45 @@ export async function getTopTokens(chain: string = "all") {
     const results = await Promise.all(
       chains.map(async (c) => {
         try {
-          const res = await fetch(
-            `https://api.dexscreener.com/token-profiles/latest/v1`,
-            { next: { revalidate: 60 } }
-          );
-          const data = await res.json();
-          const filtered = data.filter((t: any) => t.chainId === c);
-          const addresses = filtered.slice(0, 30).map((t: any) => t.tokenAddress).join(",");
-          if (!addresses) return [];
+          // Use boosted + profile tokens as seed
+          const [boostRes, profileRes] = await Promise.all([
+            fetch(`https://api.dexscreener.com/token-boosts/latest/v1`, { next: { revalidate: 120 } }),
+            fetch(`https://api.dexscreener.com/token-profiles/latest/v1`, { next: { revalidate: 120 } }),
+          ]);
 
+          const boosts = await boostRes.json();
+          const profiles = await profileRes.json();
+
+          const combined = [
+            ...boosts.filter((t: any) => t.chainId === c),
+            ...profiles.filter((t: any) => t.chainId === c),
+          ];
+
+          const seen = new Set();
+          const unique = combined.filter((t: any) => {
+            if (seen.has(t.tokenAddress)) return false;
+            seen.add(t.tokenAddress);
+            return true;
+          });
+
+          if (unique.length === 0) return [];
+
+          const addresses = unique.slice(0, 30).map((t: any) => t.tokenAddress).join(",");
           const pairRes = await fetch(
             `https://api.dexscreener.com/latest/dex/tokens/${addresses}`,
             { next: { revalidate: 60 } }
           );
           const pairData = await pairRes.json();
-          return pairData.pairs ?? [];
+          return (pairData.pairs ?? []).filter((p: any) => p.chainId === c);
         } catch {
           return [];
         }
       })
     );
 
-    pairs = results.flat();
+    let pairs = results.flat();
 
-    // Filter: must have real activity
+    // Quality filter
     pairs = pairs.filter(
       (p: any) =>
         p.liquidity?.usd > 5000 &&
@@ -42,7 +69,7 @@ export async function getTopTokens(chain: string = "all") {
 
     // Deduplicate
     const seen = new Set();
-    const deduped = [];
+    const deduped: any[] = [];
     for (const pair of pairs) {
       if (!seen.has(pair.pairAddress)) {
         seen.add(pair.pairAddress);
@@ -51,13 +78,12 @@ export async function getTopTokens(chain: string = "all") {
     }
 
     // Score and sort
-    const scored = deduped
+    return deduped
       .map((p: any) => ({ pair: p, score: scoreTrust(p) }))
       .sort((a: any, b: any) => b.score - a.score)
       .slice(0, 25)
       .map((s: any) => s.pair);
 
-    return scored;
   } catch {
     return [];
   }

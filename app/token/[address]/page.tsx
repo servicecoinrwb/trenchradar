@@ -1,8 +1,33 @@
-import { getTopTokens, scoreTrust, washRisk, scoreBreakdown } from "../../tokens";
+import { scoreTrust, washRisk, scoreBreakdown } from "../../tokens";
 import { enrichToken } from "../../enrichment";
 import { supabase } from "../../supabase";
 import WatchlistButton from "../../watchlist";
 import ScoreChart from "../../ScoreChart";
+
+async function fetchTokenByPairAddress(address: string) {
+  try {
+    const res = await fetch(
+      `https://api.dexscreener.com/latest/dex/pairs/solana/${address}`,
+      { next: { revalidate: 60 } }
+    );
+    const data = await res.json();
+    if (data?.pair) return data.pair;
+
+    // Try other chains
+    const chains = ["ethereum", "base", "arbitrum", "bsc"];
+    for (const chain of chains) {
+      const r = await fetch(
+        `https://api.dexscreener.com/latest/dex/pairs/${chain}/${address}`,
+        { next: { revalidate: 60 } }
+      );
+      const d = await r.json();
+      if (d?.pair) return d.pair;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 function getRedFlags(token: any, bd: any, enriched: any): string[] {
   const flags: string[] = [];
@@ -24,35 +49,6 @@ function getRedFlags(token: any, bd: any, enriched: any): string[] {
   return flags;
 }
 
-async function recordScore(pairAddress: string, trustScore: number, washRisk: string, priceUsd: number, liquidity: number) {
-  await supabase.from("score_history").insert({
-    pair_address: pairAddress,
-    trust_score: trustScore,
-    wash_risk: washRisk,
-    price_usd: priceUsd,
-    liquidity,
-  });
-}
-
-async function checkAndSendAlerts(pairAddress: string, tokenSymbol: string, trustScore: number) {
-  const { data: watchers } = await supabase
-    .from("watchlist")
-    .select("*")
-    .eq("pair_address", pairAddress);
-
-  if (!watchers || watchers.length === 0) return;
-
-  for (const watcher of watchers) {
-    if (trustScore <= watcher.alert_threshold) {
-      await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/send-alerts`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pair_address: pairAddress, token_symbol: tokenSymbol, trust_score: trustScore }),
-      }).catch(() => {});
-    }
-  }
-}
-
 export default async function TokenPage({
   params,
   searchParams,
@@ -61,15 +57,16 @@ export default async function TokenPage({
   searchParams: Promise<{ chain?: string }>;
 }) {
   const { address } = await params;
-  const { chain = "all" } = await searchParams;
-  const tokens = await getTopTokens(chain);
-  const token = tokens.find((t: any) => t.pairAddress === address);
+  await searchParams;
+
+  const token = await fetchTokenByPairAddress(address);
 
   if (!token) {
     return (
       <main className="min-h-screen bg-gray-950 text-white p-6 flex items-center justify-center">
         <div className="text-center">
-          <div className="text-gray-400 mb-2">Token not found in current list.</div>
+          <div className="text-gray-400 mb-2">Token not found.</div>
+          <div className="text-gray-600 text-xs mb-4">Make sure this is a valid pair address.</div>
           <a href="/" className="text-green-400 underline">Go back to rankings</a>
         </div>
       </main>
@@ -82,8 +79,13 @@ export default async function TokenPage({
   const enriched = await enrichToken(token);
   const flags = getRedFlags(token, bd, enriched);
 
-  await recordScore(address, trust, risk, Number(token.priceUsd ?? 0), bd.liquidity);
-  await checkAndSendAlerts(address, token.baseToken?.symbol ?? "", trust);
+  await supabase.from("score_history").insert({
+    pair_address: address,
+    trust_score: trust,
+    wash_risk: risk,
+    price_usd: Number(token.priceUsd ?? 0),
+    liquidity: bd.liquidity,
+  }).catch(() => {});
 
   const trustColor = trust >= 70 ? "text-green-400" : trust >= 40 ? "text-yellow-400" : "text-red-400";
   const riskColor = risk === "HIGH" ? "text-red-400" : risk === "MEDIUM" ? "text-yellow-400" : "text-green-400";
