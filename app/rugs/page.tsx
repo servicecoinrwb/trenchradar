@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+export const revalidate = 0;
 
 export default async function RugLeaderboardPage() {
   const { data: reports } = await supabase
