@@ -35,7 +35,10 @@ export default async function Home({
             <h1 className="text-3xl font-bold text-green-400">TrenchRadar</h1>
             <p className="text-gray-400 text-sm mt-1">Legit token rankings. No wash trading bullshit.</p>
           </div>
-          <div className="text-xs text-gray-500">Sorted by Trust Score</div>
+          <div className="flex items-center gap-4">
+            <a href="/api-access" className="text-xs text-gray-500 hover:text-green-400 transition-all">API Access</a>
+            <div className="text-xs text-gray-500">Sorted by Trust Score</div>
+          </div>
         </div>
 
         <SearchBar />
